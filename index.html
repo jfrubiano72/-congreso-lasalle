@@ -209,12 +209,23 @@
       </div>
 
       <div class="tab-row">
-        <button class="tab-btn on" onclick="switchTab('estilos')">Estilos</button>
+        <button class="tab-btn on" onclick="switchTab('expectativas')">Expectativas</button>
+        <button class="tab-btn"    onclick="switchTab('estilos')">Estilos</button>
         <button class="tab-btn"    onclick="switchTab('fortalezas')">Fortalezas</button>
         <button class="tab-btn"    onclick="switchTab('ventajas')">Ventajas</button>
       </div>
 
-      <div id="tab-estilos">
+      <div id="tab-expectativas">
+        <h3 style="margin-bottom:4px">¿Qué espera la sala de esta sesión?</h3>
+        <p style="font-size:12px;margin-bottom:14px">Pregunta 19 · Use este resultado para abrir el taller</p>
+        <div id="g-exp-bars"><p class="muted">Esperando respuestas...</p></div>
+        <div style="margin-top:12px;padding:11px 13px;background:var(--gris-bg);border-radius:var(--radio)">
+          <div style="font-size:11px;font-weight:600;color:var(--texto-sec);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Cómo usar este dato al abrir</div>
+          <div style="font-size:13px;line-height:1.55" id="g-exp-insight">Esperando datos...</div>
+        </div>
+      </div>
+
+      <div id="tab-estilos" style="display:none">
         <h3 style="margin-bottom:12px">Distribución de estilos de comunicación</h3>
         <div id="g-comm-bars"><p class="muted">Esperando respuestas...</p></div>
         <div style="margin-top:12px;padding:11px 13px;background:var(--gris-bg);border-radius:var(--radio)">
@@ -392,7 +403,7 @@ function goToIntro(){clearInterval(window._gi);show('s-intro')}
 function showModLogin(){document.getElementById('mod-pass').value='';document.getElementById('pass-error').style.display='none';show('s-modlogin');setTimeout(()=>document.getElementById('mod-pass').focus(),300)}
 function checkPass(){
   const v=document.getElementById('mod-pass').value.trim();
-  if(v===MOD_PASS){show('s-group');renderGroupData();renderAdvantages();window._gi=setInterval(renderGroupData,10000)}
+  if(v===MOD_PASS){show('s-group');renderGroupData();renderAdvantages();switchTab('expectativas');window._gi=setInterval(renderGroupData,10000)}
   else{document.getElementById('pass-error').style.display='block';document.getElementById('mod-pass').value='';document.getElementById('mod-pass').focus()}
 }
 
@@ -441,6 +452,7 @@ function saveResult(sc,domComm,top3,gender){
   try{
     const data=JSON.parse(localStorage.getItem(SK)||'[]');
     data.push({ts:Date.now(),name:userName,comm:domComm,strengths:top3,gender,
+      expectativa: ans[18] !== undefined ? ans[18] : -1,
       scores:{comm_directo:sc.comm_directo||0,comm_reflexivo:sc.comm_reflexivo||0,
               comm_expresivo:sc.comm_expresivo||0,comm_analitico:sc.comm_analitico||0,
               autoconocimiento:sc.autoconocimiento||0,presencia:sc.presencia||0,
@@ -582,6 +594,51 @@ function renderGroupData(){
         ${barW>12?`<span class="g-bar-pct">${pct}%</span>`:''}</div></div></div>`;
   });
   document.getElementById('g-str-bars').innerHTML=sbH||'<p class="muted">Sin datos.</p>';
+
+  /* ── EXPECTATIVAS (pregunta 19) ── */
+  const expOpts=[
+    {t:'Entender cómo me perciben los demás y qué puedo mejorar', color:'#534AB7'},
+    {t:'Herramientas concretas para comunicarme con más impacto',  color:'#185FA5'},
+    {t:'Claridad sobre mi diferencial y propuesta de valor',        color:'#0F6E56'},
+    {t:'Inspiración para construir o relanzar mi marca personal',   color:'#993C1D'}
+  ];
+  const expCounts=[0,0,0,0];
+  data.forEach(d=>{
+    if(d.expectativa!==undefined && d.expectativa>=0 && d.expectativa<=3)
+      expCounts[d.expectativa]++;
+  });
+  const expTotal=expCounts.reduce((a,b)=>a+b,0);
+  const maxExp=Math.max(...expCounts,1);
+  let expH='';
+  if(expTotal===0){
+    expH='<p class="muted">Esperando respuestas...</p>';
+  } else {
+    const sorted=[...expCounts.map((v,i)=>({v,i}))].sort((a,b)=>b.v-a.v);
+    sorted.forEach(({v,i})=>{
+      const pct=Math.round((v/expTotal)*100);
+      const barW=Math.round((v/maxExp)*100);
+      expH+=`<div class="g-bar-wrap">
+        <div class="g-bar-lr"><span class="g-bar-label" style="font-size:12px;max-width:75%;line-height:1.4;display:inline-block">${expOpts[i].t}</span><span class="g-bar-count">${v} · ${pct}%</span></div>
+        <div class="g-bar-bg"><div class="g-bar-fill" style="width:${barW}%;background:${expOpts[i].color}">
+          ${barW>12?`<span class="g-bar-pct">${pct}%</span>`:''}</div></div></div>`;
+    });
+  }
+  document.getElementById('g-exp-bars').innerHTML=expH;
+
+  /* Insight expectativas */
+  if(expTotal>0){
+    const topExp=[...expCounts.map((v,i)=>({v,i}))].sort((a,b)=>b.v-a.v)[0];
+    const topPct=Math.round((topExp.v/expTotal)*100);
+    const insightMap=[
+      `El ${topPct}% quiere entender cómo lo perciben. Abran con el experimento de FaceReader — es exactamente lo que buscan.`,
+      `El ${topPct}% quiere herramientas concretas. Prometan desde el inicio: "Se van con 5 cosas que pueden aplicar mañana".`,
+      `El ${topPct}% busca claridad sobre su diferencial. El ejercicio de la frase de marca del Bloque 4 es su momento clave.`,
+      `El ${topPct}% quiere inspiración y relanzar su marca. Compartan sus historias personales — eso es lo que necesitan escuchar.`
+    ];
+    document.getElementById('g-exp-insight').textContent=insightMap[topExp.i];
+  } else {
+    document.getElementById('g-exp-insight').textContent='Esperando respuestas de los participantes...';
+  }
 }
 
 function renderAdvantages(){
@@ -597,8 +654,8 @@ function renderAdvantages(){
 }
 
 function switchTab(tab){
-  ['estilos','fortalezas','ventajas'].forEach(t=>{document.getElementById('tab-'+t).style.display=t===tab?'block':'none'});
-  document.querySelectorAll('.tab-btn').forEach((b,i)=>{b.classList.toggle('on',['estilos','fortalezas','ventajas'][i]===tab)});
+  ['expectativas','estilos','fortalezas','ventajas'].forEach(t=>{document.getElementById('tab-'+t).style.display=t===tab?'block':'none'});
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>{b.classList.toggle('on',['expectativas','estilos','fortalezas','ventajas'][i]===tab)});
   if(tab!=='ventajas')renderGroupData();
 }
 </script>
