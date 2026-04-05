@@ -251,16 +251,16 @@
 <script>
 /* ══════════ DATOS ══════════ */
 const CS = {
-  comm_directo:  { label:'Directo/a',   color:'#185FA5', bg:'#E6F1FB',
+  comm_directo:  { label:'Directo/a',   labelM:'directo',   labelF:'directa',   color:'#185FA5', bg:'#E6F1FB',
     pros:['Toma decisiones rápidas bajo presión','Comunica metas con claridad','Genera momentum en el equipo','Elimina ambigüedades en reuniones'],
     watch:'Escuchar antes de concluir · dar espacio a estilos más reflexivos'},
-  comm_reflexivo:{ label:'Reflexivo/a', color:'#854F0B', bg:'#FAEEDA',
+  comm_reflexivo:{ label:'Reflexivo/a', labelM:'reflexivo', labelF:'reflexiva', color:'#854F0B', bg:'#FAEEDA',
     pros:['Analiza antes de actuar — menos errores','Aporta profundidad en debates','Calibra bien el contexto','Transmite seguridad y madurez'],
     watch:'Comunicar conclusiones sin esperar que pregunten · acortar tiempos de decisión'},
-  comm_expresivo:{ label:'Expresivo/a', color:'#993C1D', bg:'#FAECE7',
+  comm_expresivo:{ label:'Expresivo/a', labelM:'expresivo', labelF:'expresiva', color:'#993C1D', bg:'#FAECE7',
     pros:['Genera conexión emocional instantánea','Hace memorable cualquier mensaje','Motiva equipos en momentos críticos','Facilita conversaciones difíciles'],
     watch:'Estructurar mejor los mensajes · complementar emoción con datos'},
-  comm_analitico:{ label:'Analítico/a', color:'#534AB7', bg:'#EEEDFE',
+  comm_analitico:{ label:'Analítico/a', labelM:'analítico', labelF:'analítica', color:'#534AB7', bg:'#EEEDFE',
     pros:['Detecta errores que otros pasan por alto','Genera confianza técnica','Fundamenta decisiones con rigor','Eleva la calidad del trabajo del equipo'],
     watch:'Simplificar para audiencias no expertas · comunicar avances aunque no estén completos'}
 };
@@ -513,11 +513,10 @@ function showResults(){
   /* FRASE DE MARCA — con género */
   const fl=top3[0]?SD[top3[0]].label:'tu fortaleza clave';
   const csLabelG=cs.label; /* ya incluye /a */
-  const experto=suf(gender,'experto','experta');
-  const reconocido=suf(gender,'reconocido','reconocida');
+  const csLabelFrase = gender==='hombre' ? cs.labelM : gender==='mujer' ? cs.labelF : cs.labelM+'/'+cs.labelF;
   document.getElementById('r-frase').innerHTML=`<h3 style="margin-bottom:8px">Tu frase de marca · borrador</h3>
     <div class="hl">Soy un/a profesional con fortaleza en <strong>${fl.toLowerCase()}</strong>,
-    que se comunica de manera <strong>${csLabelG.toLowerCase()}</strong>
+    que se comunica de manera <strong>${csLabelFrase}</strong>
     y ayuda a otros a lograr resultados reales.<br><br>
     <span class="muted">Personalízala con tu nombre, tu campo y a quién sirves.</span></div>`;
 
