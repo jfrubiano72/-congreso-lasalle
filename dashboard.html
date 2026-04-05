@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Moderador · I Congreso La Salle Business School Alliance</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<style>
+  :root{
+    --verde:#16F4D0;--verde-claro:#E0FDF7;--verde-dark:#151E3F;--verde-med:#16F4D0;
+    --azul:#3C91E6;--ambar:#F3DE8A;--ambar-claro:#FFFBEC;--coral:#FA824C;--purp:#151E3F;
+    --blanco:#fff;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    background:#0D1628;color:var(--blanco);min-height:100vh}
+  #login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+  .login-box{background:#151E3F;border:0.5px solid #2A3460;border-radius:16px;padding:36px 28px;
+    max-width:360px;width:100%;text-align:center}
+  .login-box h1{font-size:20px;font-weight:600;margin-bottom:6px;color:var(--verde-claro)}
+  .login-box p{font-size:13px;color:#16F4D0;margin-bottom:20px}
+  .login-input{width:100%;background:#0D1628;border:0.5px solid #2A3460;border-radius:10px;
+    padding:12px;font-size:20px;text-align:center;letter-spacing:6px;color:var(--blanco);
+    outline:none;margin-bottom:12px}
+  .login-input:focus{border-color:var(--azul)}
+  .login-btn{width:100%;background:var(--azul);color:#fff;border:none;
+    border-radius:10px;padding:13px;font-size:15px;font-weight:600;cursor:pointer}
+  .login-btn:hover{opacity:.88}
+  .login-err{color:#F09595;font-size:13px;margin-top:8px;display:none}
+
+  #dash{display:none}
+  .top-bar{background:#151E3F;border-bottom:0.5px solid #2A3460;padding:12px 24px;
+    display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+  .top-title{font-size:14px;font-weight:600;color:var(--verde-claro)}
+  .top-sub{font-size:11px;color:#16F4D0}
+  .top-right{display:flex;align-items:center;gap:12px}
+  .live-badge{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--verde-med)}
+  .live-dot{width:8px;height:8px;border-radius:50%;background:var(--verde);animation:pulse 1.5s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  .refresh-btn{background:transparent;border:0.5px solid #2A3460;color:#16F4D0;border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer}
+  .clear-btn{background:transparent;border:0.5px solid #993C1D;color:#F09595;border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer}
+
+  .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;padding:16px 24px}
+  .stat-card{background:#151E3F;border:0.5px solid #2A3460;border-radius:12px;padding:14px;text-align:center}
+  .stat-num{font-size:28px;font-weight:700;line-height:1}
+  .stat-lbl{font-size:11px;color:#16F4D0;margin-top:4px}
+
+  .tabs{display:flex;gap:6px;padding:0 24px 12px;flex-wrap:wrap}
+  .tab{padding:8px 16px;border-radius:20px;font-size:13px;font-weight:500;cursor:pointer;
+    border:0.5px solid #2A3460;background:transparent;color:#16F4D0;transition:all .15s}
+  .tab.on{background:var(--verde);color:var(--verde-claro);border-color:var(--azul)}
+
+  .panel{display:none;padding:0 24px 24px}
+  .panel.active{display:block}
+
+  /* Una sola columna por panel — distribución arriba, detalle abajo */
+  .chart-col{display:flex;flex-direction:column;gap:16px}
+  .chart-card{background:#151E3F;border:0.5px solid #2A3460;border-radius:14px;padding:18px}
+  .chart-title{font-size:14px;font-weight:700;color:var(--verde-claro);margin-bottom:14px;text-align:center}
+  /* Altura mayor para las gráficas circulares con etiquetas externas */
+  .chart-wrap-lg{position:relative;height:420px}
+  .chart-wrap{position:relative;height:360px}
+  .chart-wrap-sm{position:relative;height:200px}
+
+  /* Dos columnas solo para género */
+  .two-col{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+
+  .hbar-wrap{margin-bottom:7px}
+  .hbar-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px}
+  .hbar-label{font-size:11px;color:var(--blanco);line-height:1.4;max-width:72%;display:inline-block}
+  .hbar-pct{font-size:11px;font-weight:700;color:var(--verde-med)}
+  .hbar-count{font-size:10px;color:#16F4D0;margin-left:4px}
+  .hbar-bg{height:8px;background:#0D1628;border-radius:6px;overflow:hidden}
+  .hbar-fill{height:100%;border-radius:6px;transition:width .8s ease}
+
+  .insight-box{background:#0D1628;border-left:3px solid var(--azul);
+    border-radius:0 10px 10px 0;padding:12px 14px;margin-top:4px;
+    font-size:13px;color:#16F4D0;line-height:1.6}
+  .insight-label{font-size:10px;font-weight:700;color:var(--azul);
+    text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px}
+
+  .filter-row{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+  .filter-btn{padding:5px 14px;border-radius:20px;font-size:12px;cursor:pointer;
+    border:0.5px solid #2A3460;background:transparent;color:#16F4D0;transition:all .15s}
+  .filter-btn.on{background:var(--verde-dark);color:var(--verde-claro);border-color:var(--azul)}
+
+  .entry-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:0.5px solid #2A3460;font-size:13px}
+  .entry-row:last-child{border-bottom:none}
+  .entry-name{color:var(--blanco);font-weight:500;min-width:100px}
+  .entry-chip{padding:2px 9px;border-radius:20px;font-size:11px;font-weight:500}
+  .chip-h{background:#1a2d5a;color:#3C91E6}
+  .chip-m{background:#3d1a10;color:#FA824C}
+  .chip-o{background:#1e2e1e;color:#16F4D0}
+  .entry-style{font-size:12px;color:#16F4D0}
+  .entry-time{font-size:11px;color:#444;margin-left:auto}
+
+  @media(max-width:600px){
+    .stats-row{padding:12px 14px}.tabs{padding:0 14px 10px}.panel{padding:0 14px 20px}
+    .chart-card{padding:14px}
+  }
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="login-box">
+    <h1>Panel del moderador</h1>
+    <p>I Congreso La Salle Business School Alliance · Abril 2026</p>
+    <input id="pass-in" type="password" class="login-input" placeholder="····"
+      onkeydown="if(event.key==='Enter')login()">
+    <button class="login-btn" onclick="login()">Ingresar</button>
+    <div id="pass-err" class="login-err">Clave incorrecta</div>
+  </div>
+</div>
+
+<div id="dash">
+  <div class="top-bar">
+    <div>
+      <div class="top-title">Panel moderador · Tu Marca Eres Tú</div>
+      <div class="top-sub">I Congreso La Salle Business School Alliance · Bajío–Colombia · Abril 2026</div>
+    </div>
+    <div class="top-right">
+      <div class="live-badge"><div class="live-dot"></div><span id="last-update">Cargando...</span></div>
+      <button class="refresh-btn" onclick="loadData()">Actualizar</button>
+      <button class="clear-btn" onclick="clearAll()">Limpiar datos</button>
+    </div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-num" id="st-total" style="color:var(--verde)">0</div><div class="stat-lbl">Total respuestas</div></div>
+    <div class="stat-card"><div class="stat-num" id="st-h" style="color:#85B7EB">0</div><div class="stat-lbl">Hombres</div></div>
+    <div class="stat-card"><div class="stat-num" id="st-m" style="color:#ED93B1">0</div><div class="stat-lbl">Mujeres</div></div>
+    <div class="stat-card"><div class="stat-num" id="st-dom" style="color:var(--ambar);font-size:18px">—</div><div class="stat-lbl">Estilo dominante</div></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab on" onclick="showTab('expectativas')">Expectativas</button>
+    <button class="tab"    onclick="showTab('estilos')">Estilos</button>
+    <button class="tab"    onclick="showTab('fortalezas')">Fortalezas</button>
+    <button class="tab"    onclick="showTab('genero')">Por género</button>
+    <button class="tab"    onclick="showTab('recientes')">Últimas respuestas</button>
+  </div>
+
+  <!-- EXPECTATIVAS -->
+  <div class="panel active" id="p-expectativas">
+    <div class="chart-col">
+      <div class="chart-card">
+        <div class="chart-title">¿Qué espera la sala de esta sesión?</div>
+        <div class="chart-wrap-lg"><canvas id="chart-exp"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Detalle · respuestas por opción</div>
+        <div id="exp-bars"></div>
+        <div class="insight-box">
+          <div class="insight-label">Cómo abrir el taller</div>
+          <div id="exp-insight">Cargando datos...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ESTILOS -->
+  <div class="panel" id="p-estilos">
+    <div class="filter-row">
+      <button class="filter-btn on" id="fe-all" onclick="setFilter('all')">Todos</button>
+      <button class="filter-btn" id="fe-h"   onclick="setFilter('hombre')">Hombres</button>
+      <button class="filter-btn" id="fe-m"   onclick="setFilter('mujer')">Mujeres</button>
+    </div>
+    <div class="chart-col">
+      <div class="chart-card">
+        <div class="chart-title">Distribución de estilos de comunicación</div>
+        <div class="chart-wrap-lg"><canvas id="chart-estilos"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Detalle · personas por estilo</div>
+        <div id="estilos-bars"></div>
+        <div class="insight-box">
+          <div class="insight-label">Insight para el facilitador</div>
+          <div id="estilos-insight">Cargando...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FORTALEZAS -->
+  <div class="panel" id="p-fortalezas">
+    <div class="chart-col">
+      <div class="chart-card">
+        <div class="chart-title">Top fortalezas de la sala</div>
+        <div class="chart-wrap-lg"><canvas id="chart-fort"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Detalle · ranking completo con porcentajes</div>
+        <div id="fort-bars"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GÉNERO -->
+  <div class="panel" id="p-genero">
+    <div class="chart-col">
+      <div class="two-col">
+        <div class="chart-card">
+          <div class="chart-title">Distribución por género</div>
+          <div class="chart-wrap-lg"><canvas id="chart-genero"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Estilos · hombres vs mujeres</div>
+          <div class="chart-wrap-lg"><canvas id="chart-genero-estilos"></canvas></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RECIENTES -->
+  <div class="panel" id="p-recientes">
+    <div class="chart-card">
+      <div class="chart-title">Últimas 20 respuestas</div>
+      <div id="recientes-list"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+Chart.register(ChartDataLabels);
+
+const GAS_URL='https://script.google.com/macros/s/AKfycbwd5LQteXfr6leQWqfVwQWzYTDZDbk0r4Rk4aslBCMIVDA_QsZjvyxMv3LV-MtejVsu/exec';
+const MOD_PASS='2412';
+let allData=[], currentFilter='all', charts={};
+
+const CS={
+  comm_directo: {label:'Directa',    color:'#3C91E6'},
+  comm_reflexivo:{label:'Reflexiva',  color:'#F3DE8A'},
+  comm_expresivo:{label:'Expresiva',  color:'#FA824C'},
+  comm_analitico:{label:'Analítica',  color:'#16F4D0'}
+};
+const SD={
+  analitico:'Pensamiento analítico', estrategico:'Pensamiento estratégico',
+  relacionador:'Constructor/a de relaciones', activador:'Activador/a',
+  comunicacion:'Comunicador/a natural', disciplina:'Disciplina y excelencia',
+  empatia:'Inteligencia emocional', desarrollo:'Desarrollador/a de personas',
+  futurista:'Visionario/a', mando:'Liderazgo de mando',
+  positividad:'Energía positiva', aprendizaje:'Aprendizaje continuo',
+  enfoque:'Enfoque y determinación', adaptable:'Adaptabilidad',
+  responsabilidad:'Responsabilidad', contexto:'Pensamiento contextual'
+};
+const EXP_OPTS=[
+  'Entender cómo me perciben',
+  'Herramientas de comunicación',
+  'Claridad sobre mi diferencial',
+  'Inspiración para mi marca'
+];
+const EXP_FULL=[
+  'Entender cómo me perciben los demás',
+  'Herramientas para comunicarme con más impacto',
+  'Claridad sobre mi diferencial y propuesta de valor',
+  'Inspiración para construir mi marca personal'
+];
+const EXP_COLORS=['#151E3F','#3C91E6','#16F4D0','#FA824C'];
+
+/* Opciones comunes para datalabels exteriores en pie/donut */
+function outerLabels(total){
+  return {
+    display: ctx => ctx.dataset.data[ctx.dataIndex] > 0,
+    anchor:'end', align:'end', offset:8,
+    color:'#E1F5EE', font:{size:12, weight:'600'},
+    formatter:(val, ctx)=>{
+      const pct = total>0 ? Math.round((val/total)*100) : 0;
+      return `${ctx.chart.data.labels[ctx.dataIndex]}\n${pct}% (${val})`;
+    }
+  };
+}
+
+function login(){
+  if(document.getElementById('pass-in').value.trim()===MOD_PASS){
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('dash').style.display='block';
+    loadData();
+    setInterval(loadData,10000);
+  } else {
+    document.getElementById('pass-err').style.display='block';
+    document.getElementById('pass-in').value='';
+  }
+}
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&document.getElementById('login-screen').style.display!=='none')login();
+});
+
+async function loadData(){
+  try{
+    const r=await fetch(GAS_URL+'?t='+Date.now(),{redirect:'follow'});
+    const text=await r.text();
+    let j;
+    try{ j=JSON.parse(text); } catch(e){ throw new Error('JSON inválido'); }
+    allData=(j.data||[]).filter(d=>d.Timestamp||d.Nombre||d.Género||d.Estilo);
+    const now=new Date().toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    document.getElementById('last-update').textContent=
+      'Actualizado '+now+' · '+allData.length+' respuesta'+(allData.length!==1?'s':'');
+    renderAll();
+  }catch(e){
+    document.getElementById('last-update').textContent='Error de conexión — reintentando...';
+  }
+}
+
+function getFiltered(){
+  return currentFilter==='all' ? allData
+    : allData.filter(d=>(d.Género||d.gender||'').toLowerCase()===currentFilter);
+}
+
+function setFilter(f){
+  currentFilter=f;
+  ['all','h','m'].forEach(id=>{
+    const el=document.getElementById('fe-'+id);
+    if(el) el.classList.toggle('on',
+      (id==='all'&&f==='all')||(id==='h'&&f==='hombre')||(id==='m'&&f==='mujer'));
+  });
+  renderEstilos();
+}
+
+function showTab(tab){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.getElementById('p-'+tab).classList.add('active');
+  const tabs=['expectativas','estilos','fortalezas','genero','recientes'];
+  document.querySelectorAll('.tab')[tabs.indexOf(tab)]?.classList.add('on');
+}
+
+function renderAll(){
+  const data=allData, total=data.length;
+  const hCount=data.filter(d=>(d.Género||d.gender||'').toLowerCase()==='hombre').length;
+  const mCount=data.filter(d=>(d.Género||d.gender||'').toLowerCase()==='mujer').length;
+  document.getElementById('st-total').textContent=total;
+  document.getElementById('st-h').textContent=hCount;
+  document.getElementById('st-m').textContent=mCount;
+  if(total>0){
+    const csCount={comm_directo:0,comm_reflexivo:0,comm_expresivo:0,comm_analitico:0};
+    data.forEach(d=>{const c=(d.Estilo||'').trim();if(csCount[c]!==undefined)csCount[c]++});
+    const dom=Object.entries(csCount).sort((a,b)=>b[1]-a[1])[0];
+    document.getElementById('st-dom').textContent=CS[dom[0]]?.label||dom[0];
+  }
+  renderExpectativas();
+  renderEstilos();
+  renderFortalezas();
+  renderGenero();
+  renderRecientes();
+}
+
+function hBar(label,v,total,color){
+  const pct=total>0?Math.round((v/total)*100):0;
+  return `<div class="hbar-wrap">
+    <div class="hbar-top">
+      <span class="hbar-label">${label}</span>
+      <span><span class="hbar-pct">${pct}%</span><span class="hbar-count">${v} pers.</span></span>
+    </div>
+    <div class="hbar-bg"><div class="hbar-fill" style="width:${pct}%;background:${color}"></div></div>
+  </div>`;
+}
+
+function renderExpectativas(){
+  const data=allData;
+  const counts=[0,0,0,0];
+  data.forEach(d=>{
+    const e=parseInt(d.Expectativa??d.expectativa??-1);
+    if(e>=0&&e<=3)counts[e]++;
+  });
+  const total=counts.reduce((a,b)=>a+b,0);
+
+  /* Donut con etiquetas externas */
+  const ctx=document.getElementById('chart-exp');
+  if(charts.exp)charts.exp.destroy();
+  charts.exp=new Chart(ctx,{
+    type:'doughnut',
+    data:{
+      labels:EXP_OPTS,
+      datasets:[{data:counts, backgroundColor:EXP_COLORS, borderColor:'#132536', borderWidth:3,
+        hoverOffset:12}]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      layout:{padding:{top:30,bottom:30,left:40,right:40}},
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:ctx=>{
+          const pct=total>0?Math.round((ctx.parsed/total)*100):0;
+          return ` ${EXP_FULL[ctx.dataIndex]}: ${ctx.parsed} pers. · ${pct}%`;
+        }}},
+        datalabels: outerLabels(total)
+      }
+    }
+  });
+
+  /* Barras detalle */
+  const sorted=[...counts.map((v,i)=>({v,i}))].sort((a,b)=>b.v-a.v);
+  let html='';
+  sorted.forEach(({v,i})=>{ html+=hBar(EXP_FULL[i],v,total,EXP_COLORS[i]); });
+  document.getElementById('exp-bars').innerHTML=html||'<p style="color:#16F4D0;font-size:13px">Sin datos aún...</p>';
+
+  if(total>0){
+    const top=sorted[0];
+    const pct=Math.round((top.v/total)*100);
+    const msgs=[
+      `El ${pct}% quiere entender cómo lo perciben. Abran con el experimento de FaceReader.`,
+      `El ${pct}% quiere herramientas concretas. Prometan: "Se van con 5 cosas aplicables mañana".`,
+      `El ${pct}% busca claridad sobre su diferencial. El ejercicio de frase de marca es su momento clave.`,
+      `El ${pct}% quiere inspiración. Compartan sus historias personales — eso es lo que necesitan.`
+    ];
+    document.getElementById('exp-insight').textContent=msgs[top.i];
+  }
+}
+
+function renderEstilos(){
+  const data=getFiltered(), total=data.length;
+  const csCount={comm_directo:0,comm_reflexivo:0,comm_expresivo:0,comm_analitico:0};
+  data.forEach(d=>{const c=(d.Estilo||'').trim();if(csCount[c]!==undefined)csCount[c]++});
+
+  /* Donut con etiquetas externas */
+  const ctx=document.getElementById('chart-estilos');
+  if(charts.estilos)charts.estilos.destroy();
+  charts.estilos=new Chart(ctx,{
+    type:'doughnut',
+    data:{
+      labels:Object.values(CS).map(c=>c.label),
+      datasets:[{data:Object.keys(CS).map(k=>csCount[k]),
+        backgroundColor:Object.values(CS).map(c=>c.color),
+        borderColor:'#132536', borderWidth:3, hoverOffset:12}]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      layout:{padding:{top:30,bottom:30,left:40,right:40}},
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:ctx=>{
+          const pct=total>0?Math.round((ctx.parsed/total)*100):0;
+          return ` ${ctx.parsed} personas · ${pct}%`;
+        }}},
+        datalabels: outerLabels(total)
+      }
+    }
+  });
+
+  /* Barras detalle */
+  let html='';
+  Object.entries(csCount).sort((a,b)=>b[1]-a[1]).forEach(([k,v])=>{
+    html+=hBar(CS[k].label,v,total,CS[k].color);
+  });
+  document.getElementById('estilos-bars').innerHTML=html||'<p style="color:#16F4D0;font-size:13px">Sin datos aún...</p>';
+
+  if(total>0){
+    const dom=Object.entries(csCount).sort((a,b)=>b[1]-a[1])[0];
+    const pct=Math.round((dom[1]/total)*100);
+    const msgs={
+      comm_directo:`Sala orientada a resultados (${pct}% directa). Dar conclusiones primero, luego contexto.`,
+      comm_reflexivo:`Sala reflexiva (${pct}% reflexiva). Dar tiempo para procesar antes de decidir.`,
+      comm_expresivo:`Sala emocional (${pct}% expresiva). Conectar primero con personas, luego con ideas.`,
+      comm_analitico:`Sala técnica (${pct}% analítica). Apoyar afirmaciones con datos — la credibilidad viene del rigor.`
+    };
+    const sfx=currentFilter!=='all'?` · ${currentFilter==='hombre'?'hombres':'mujeres'}`:'';
+    document.getElementById('estilos-insight').textContent=(msgs[dom[0]]||'')+sfx;
+  } else {
+    document.getElementById('estilos-insight').textContent='Sin datos para el filtro seleccionado.';
+  }
+}
+
+function renderFortalezas(){
+  const data=allData, total=data.length||1;
+  const strCount={};
+  data.forEach(d=>{
+    const raw=d.Fortalezas||d.strengths||'';
+    const list=typeof raw==='string'?raw.split(',').map(s=>s.trim()).filter(Boolean):(raw||[]);
+    list.forEach(s=>{strCount[s]=(strCount[s]||0)+1});
+  });
+  const sorted=Object.entries(strCount).sort((a,b)=>b[1]-a[1]).slice(0,8);
+
+  /* Barras horizontales con datalabels */
+  const ctx=document.getElementById('chart-fort');
+  if(charts.fort)charts.fort.destroy();
+  charts.fort=new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels:sorted.map(([k])=>{
+        const lbl=SD[k]||k;
+        const words=lbl.split(' ');
+        if(words.length<=2)return lbl;
+        const mid=Math.ceil(words.length/2);
+        return [words.slice(0,mid).join(' '), words.slice(mid).join(' ')];
+      }),
+      datasets:[{data:sorted.map(([,v])=>v),
+        backgroundColor:['#3C91E6','#16F4D0','#FA824C','#F3DE8A','#3C91E6','#16F4D0','#FA824C','#F3DE8A'],
+        borderRadius:6, borderSkipped:false}]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      layout:{padding:{top:40}},
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:ctx=>{
+          const pct=Math.round((ctx.parsed.y/total)*100);
+          return ` ${ctx.parsed.y} personas · ${pct}%`;
+        }}},
+        datalabels:{
+          display:true,
+          anchor:'end', align:'top',
+          color:'#E1F5EE', font:{size:11, weight:'600'},
+          formatter:(val)=>{
+            const pct=Math.round((val/total)*100);
+            return `${pct}%\n(${val})`;
+          }
+        }
+      },
+      scales:{
+        x:{grid:{display:false},ticks:{color:'#9FE1CB',font:{size:10},maxRotation:30,minRotation:0}},
+        y:{grid:{color:'#2A3460'},ticks:{color:'#9FE1CB',font:{size:11}},
+          title:{display:true,text:'Personas',color:'#9FE1CB',font:{size:11}}}
+      }
+    }
+  });
+
+  /* Detalle barras */
+  const maxV=sorted[0]?sorted[0][1]:1;
+  let html='';
+  sorted.forEach(([k,v])=>{
+    const pct=Math.round((v/total)*100);
+    html+=`<div class="hbar-wrap">
+      <div class="hbar-top">
+        <span class="hbar-label">${SD[k]||k}</span>
+        <span><span class="hbar-pct">${pct}%</span><span class="hbar-count">${v} pers.</span></span>
+      </div>
+      <div class="hbar-bg"><div class="hbar-fill" style="width:${Math.round((v/maxV)*100)}%;background:var(--verde-med)"></div></div>
+    </div>`;
+  });
+  document.getElementById('fort-bars').innerHTML=html||'<p style="color:#16F4D0;font-size:13px">Sin datos aún...</p>';
+}
+
+function renderGenero(){
+  const data=allData;
+  const hCount=data.filter(d=>(d.Género||d.gender||'').toLowerCase()==='hombre').length;
+  const mCount=data.filter(d=>(d.Género||d.gender||'').toLowerCase()==='mujer').length;
+  const oCount=data.length-hCount-mCount;
+  const totalG=hCount+mCount+oCount||1;
+
+  /* Pie género con etiquetas externas */
+  const ctx1=document.getElementById('chart-genero');
+  if(charts.genero)charts.genero.destroy();
+  charts.genero=new Chart(ctx1,{
+    type:'pie',
+    data:{
+      labels:['Hombres','Mujeres','No especifica'],
+      datasets:[{data:[hCount,mCount,oCount],
+        backgroundColor:['#3C91E6','#FA824C','#F3DE8A'],
+        borderColor:'#132536', borderWidth:3, hoverOffset:12}]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      layout:{padding:{top:30,bottom:30,left:40,right:40}},
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:ctx=>{
+          return ` ${ctx.parsed} · ${Math.round((ctx.parsed/totalG)*100)}%`;
+        }}},
+        datalabels: outerLabels(totalG)
+      }
+    }
+  });
+
+  /* Barras agrupadas estilos por género con datalabels */
+  const csKeys=['comm_directo','comm_reflexivo','comm_expresivo','comm_analitico'];
+  const hData=data.filter(d=>(d.Género||d.gender||'').toLowerCase()==='hombre');
+  const mData=data.filter(d=>(d.Género||d.gender||'').toLowerCase()==='mujer');
+  const hCounts=csKeys.map(k=>hData.filter(d=>(d.Estilo||'').trim()===k).length);
+  const mCounts=csKeys.map(k=>mData.filter(d=>(d.Estilo||'').trim()===k).length);
+
+  const ctx2=document.getElementById('chart-genero-estilos');
+  if(charts.generoEst)charts.generoEst.destroy();
+  charts.generoEst=new Chart(ctx2,{
+    type:'bar',
+    data:{
+      labels:csKeys.map(k=>CS[k].label),
+      datasets:[
+        {label:'Hombres', data:hCounts, backgroundColor:'#3C91E6', borderRadius:4},
+        {label:'Mujeres', data:mCounts, backgroundColor:'#FA824C', borderRadius:4}
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      layout:{padding:{top:20}},
+      plugins:{
+        legend:{display:false},
+        datalabels:{
+          display: ctx => ctx.dataset.data[ctx.dataIndex] > 0,
+          anchor:'end', align:'top',
+          color:'#E1F5EE', font:{size:11, weight:'600'},
+          formatter:(val, ctx)=>{
+            const base = ctx.datasetIndex===0 ? hCount : mCount;
+            const pct = base>0 ? Math.round((val/base)*100) : 0;
+            return `${pct}%`;
+          }
+        }
+      },
+      scales:{
+        x:{grid:{display:false},ticks:{color:'#9FE1CB',font:{size:11}}},
+        y:{grid:{color:'#2A3460'},ticks:{color:'#9FE1CB',font:{size:11}},
+          title:{display:true,text:'Personas',color:'#9FE1CB',font:{size:11}}}
+      }
+    }
+  });
+}
+
+function renderRecientes(){
+  const data=[...allData].reverse().slice(0,20);
+  if(data.length===0){
+    document.getElementById('recientes-list').innerHTML=
+      '<p style="color:#16F4D0;font-size:13px;padding:10px 0">Sin respuestas aún...</p>';
+    return;
+  }
+  let html='';
+  data.forEach(d=>{
+    const g=(d.Género||d.gender||'o').toLowerCase();
+    const chipCls=g==='hombre'?'chip-h':g==='mujer'?'chip-m':'chip-o';
+    const chipTxt=g==='hombre'?'H':g==='mujer'?'M':'—';
+    const name=d.Nombre||d.name||'Anónimo/a';
+    const style=CS[(d.Estilo||'').trim()]?.label||d.Estilo||'—';
+    const ts=d.Timestamp?new Date(d.Timestamp).toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'}):'';
+    html+=`<div class="entry-row">
+      <span class="entry-chip ${chipCls}">${chipTxt}</span>
+      <span class="entry-name">${name}</span>
+      <span class="entry-style">${style}</span>
+      <span class="entry-time">${ts}</span>
+    </div>`;
+  });
+  document.getElementById('recientes-list').innerHTML=html;
+}
+
+function clearAll(){
+  alert('Para limpiar los datos, vaya a Google Sheets y borre las filas desde la fila 2 en adelante, dejando los encabezados intactos.');
+}
+</script>
+</body>
+</html>
