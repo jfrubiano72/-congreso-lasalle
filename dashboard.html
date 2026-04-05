@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Moderador · I Congreso La Salle Business School Alliance</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --verde:#0F6E56;--verde-claro:#E1F5EE;--verde-dark:#085041;--verde-med:#5DCAA5;
+    --azul:#185FA5;--azul-claro:#E6F1FB;--ambar:#854F0B;--ambar-claro:#FAEEDA;
+    --coral:#993C1D;--coral-claro:#FAECE7;--purp:#534AB7;--purp-claro:#EEEDFE;
+    --gris:#F7F7F5;--borde:#E0DED8;--texto:#1A1A18;--sec:#5C5C58;--blanco:#fff;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    background:#0B1E2D;color:var(--blanco);min-height:100vh}
+
+  /* ── LOGIN ── */
+  #login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+  .login-box{background:#132536;border:0.5px solid #1e3a50;border-radius:16px;padding:36px 28px;
+    max-width:360px;width:100%;text-align:center}
+  .login-box h1{font-size:20px;font-weight:600;margin-bottom:6px;color:var(--verde-claro)}
+  .login-box p{font-size:13px;color:#9FE1CB;margin-bottom:20px}
+  .login-input{width:100%;background:#0B1E2D;border:0.5px solid #1e3a50;border-radius:10px;
+    padding:12px;font-size:20px;text-align:center;letter-spacing:6px;color:var(--blanco);
+    outline:none;margin-bottom:12px}
+  .login-input:focus{border-color:var(--verde-med)}
+  .login-btn{width:100%;background:var(--verde);color:var(--verde-claro);border:none;
+    border-radius:10px;padding:13px;font-size:15px;font-weight:600;cursor:pointer}
+  .login-btn:hover{opacity:.88}
+  .login-err{color:#F09595;font-size:13px;margin-top:8px;display:none}
+
+  /* ── DASHBOARD ── */
+  #dash{display:none}
+  .top-bar{background:#132536;border-bottom:0.5px solid #1e3a50;padding:12px 24px;
+    display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+  .top-title{font-size:14px;font-weight:600;color:var(--verde-claro)}
+  .top-sub{font-size:11px;color:#9FE1CB}
+  .top-right{display:flex;align-items:center;gap:12px}
+  .live-badge{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--verde-med)}
+  .live-dot{width:8px;height:8px;border-radius:50%;background:var(--verde-med);
+    animation:pulse 1.5s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  .refresh-btn{background:transparent;border:0.5px solid #1e3a50;color:#9FE1CB;
+    border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer}
+  .clear-btn{background:transparent;border:0.5px solid #993C1D;color:#F09595;
+    border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer}
+
+  /* ── STATS GRID ── */
+  .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));
+    gap:10px;padding:16px 24px}
+  .stat-card{background:#132536;border:0.5px solid #1e3a50;border-radius:12px;
+    padding:14px;text-align:center}
+  .stat-num{font-size:28px;font-weight:700;line-height:1}
+  .stat-lbl{font-size:11px;color:#9FE1CB;margin-top:4px}
+
+  /* ── TABS ── */
+  .tabs{display:flex;gap:6px;padding:0 24px 12px;flex-wrap:wrap}
+  .tab{padding:8px 16px;border-radius:20px;font-size:13px;font-weight:500;cursor:pointer;
+    border:0.5px solid #1e3a50;background:transparent;color:#9FE1CB;transition:all .15s}
+  .tab.on{background:var(--verde);color:var(--verde-claro);border-color:var(--verde)}
+
+  /* ── PANELS ── */
+  .panel{display:none;padding:0 24px 24px}
+  .panel.active{display:block}
+  .charts-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+  .chart-card{background:#132536;border:0.5px solid #1e3a50;border-radius:14px;padding:18px}
+  .chart-title{font-size:13px;font-weight:600;color:var(--verde-claro);margin-bottom:14px}
+  .chart-wrap{position:relative;height:220px}
+
+  /* ── BARRAS HORIZONTALES ── */
+  .hbar-wrap{margin-bottom:10px}
+  .hbar-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px}
+  .hbar-label{font-size:13px;color:var(--blanco);line-height:1.4;max-width:72%;display:inline-block}
+  .hbar-pct{font-size:13px;font-weight:700;color:var(--verde-med)}
+  .hbar-count{font-size:11px;color:#9FE1CB;margin-left:4px}
+  .hbar-bg{height:12px;background:#0B1E2D;border-radius:6px;overflow:hidden}
+  .hbar-fill{height:100%;border-radius:6px;transition:width .8s ease}
+
+  /* ── INSIGHT BOX ── */
+  .insight-box{background:#0B1E2D;border-left:3px solid var(--verde-med);
+    border-radius:0 10px 10px 0;padding:12px 14px;margin-top:14px;
+    font-size:13px;color:#9FE1CB;line-height:1.6}
+  .insight-label{font-size:10px;font-weight:700;color:var(--verde-med);
+    text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px}
+
+  /* ── FILTER ── */
+  .filter-row{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+  .filter-btn{padding:5px 14px;border-radius:20px;font-size:12px;cursor:pointer;
+    border:0.5px solid #1e3a50;background:transparent;color:#9FE1CB;transition:all .15s}
+  .filter-btn.on{background:var(--verde-dark);color:var(--verde-claro);border-color:var(--verde)}
+
+  /* ── LAST ENTRIES ── */
+  .entry-row{display:flex;align-items:center;gap:10px;padding:10px 0;
+    border-bottom:0.5px solid #1e3a50;font-size:13px}
+  .entry-row:last-child{border-bottom:none}
+  .entry-name{color:var(--blanco);font-weight:500;min-width:100px}
+  .entry-chip{padding:2px 9px;border-radius:20px;font-size:11px;font-weight:500}
+  .chip-h{background:#1a3a5c;color:#85B7EB}
+  .chip-m{background:#3d1a2e;color:#ED93B1}
+  .chip-o{background:#1e2e1e;color:#9FE1CB}
+  .entry-style{font-size:12px;color:#9FE1CB}
+  .entry-time{font-size:11px;color:#444;margin-left:auto}
+
+  @media(max-width:600px){
+    .stats-row{padding:12px 14px}.tabs{padding:0 14px 10px}.panel{padding:0 14px 20px}
+    .chart-card{padding:14px}.charts-grid{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <h1>Panel del moderador</h1>
+    <p>I Congreso La Salle Business School Alliance · Abril 2026</p>
+    <input id="pass-in" type="password" class="login-input" placeholder="····"
+      onkeydown="if(event.key==='Enter')login()">
+    <button class="login-btn" onclick="login()">Ingresar</button>
+    <div id="pass-err" class="login-err">Clave incorrecta</div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dash">
+  <div class="top-bar">
+    <div>
+      <div class="top-title">Panel moderador · Tu Marca Eres Tú</div>
+      <div class="top-sub">I Congreso La Salle Business School Alliance · Bajío–Colombia · Abril 2026</div>
+    </div>
+    <div class="top-right">
+      <div class="live-badge"><div class="live-dot"></div><span id="last-update">Cargando...</span></div>
+      <button class="refresh-btn" onclick="loadData()">Actualizar</button>
+      <button class="clear-btn" onclick="clearAll()">Limpiar datos</button>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-num" id="st-total" style="color:var(--verde-med)">0</div>
+      <div class="stat-lbl">Total respuestas</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="st-h" style="color:#85B7EB">0</div>
+      <div class="stat-lbl">Hombres</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="st-m" style="color:#ED93B1">0</div>
+      <div class="stat-lbl">Mujeres</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="st-dom" style="color:var(--ambar-claro);font-size:18px">—</div>
+      <div class="stat-lbl">Estilo dominante</div>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab on"  onclick="showTab('expectativas')">Expectativas</button>
+    <button class="tab"     onclick="showTab('estilos')">Estilos</button>
+    <button class="tab"     onclick="showTab('fortalezas')">Fortalezas</button>
+    <button class="tab"     onclick="showTab('genero')">Por género</button>
+    <button class="tab"     onclick="showTab('recientes')">Últimas respuestas</button>
+  </div>
+
+  <!-- PANEL: EXPECTATIVAS -->
+  <div class="panel active" id="p-expectativas">
+    <div class="charts-grid">
+      <div class="chart-card" style="grid-column:1/-1">
+        <div class="chart-title">¿Qué espera la sala de esta sesión? · Pregunta 19</div>
+        <div id="exp-bars"></div>
+        <div class="insight-box">
+          <div class="insight-label">Cómo abrir el taller</div>
+          <div id="exp-insight">Cargando datos...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANEL: ESTILOS -->
+  <div class="panel" id="p-estilos">
+    <div class="filter-row">
+      <button class="filter-btn on" id="fe-all" onclick="setFilter('all')">Todos</button>
+      <button class="filter-btn" id="fe-h"   onclick="setFilter('hombre')">Hombres</button>
+      <button class="filter-btn" id="fe-m"   onclick="setFilter('mujer')">Mujeres</button>
+    </div>
+    <div class="charts-grid">
+      <div class="chart-card">
+        <div class="chart-title">Distribución de estilos de comunicación</div>
+        <div class="chart-wrap"><canvas id="chart-estilos"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Estilos · detalle</div>
+        <div id="estilos-bars"></div>
+        <div class="insight-box">
+          <div class="insight-label">Insight para el facilitador</div>
+          <div id="estilos-insight">Cargando...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANEL: FORTALEZAS -->
+  <div class="panel" id="p-fortalezas">
+    <div class="charts-grid">
+      <div class="chart-card">
+        <div class="chart-title">Top fortalezas de la sala</div>
+        <div class="chart-wrap"><canvas id="chart-fort"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Fortalezas · ranking completo</div>
+        <div id="fort-bars"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANEL: POR GÉNERO -->
+  <div class="panel" id="p-genero">
+    <div class="charts-grid">
+      <div class="chart-card">
+        <div class="chart-title">Distribución por género</div>
+        <div class="chart-wrap"><canvas id="chart-genero"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Estilos · hombres vs mujeres</div>
+        <div class="chart-wrap"><canvas id="chart-genero-estilos"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANEL: RECIENTES -->
+  <div class="panel" id="p-recientes">
+    <div class="chart-card">
+      <div class="chart-title">Últimas 20 respuestas</div>
+      <div id="recientes-list"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const GAS_URL='https://script.google.com/macros/s/AKfycby565YGAoQm2hG7v8v0lgI9BpCG-ekxgXhb7v5qVHvVMh3HpJeBk_OFp2v6M0i790fV/exec';
+const MOD_PASS='2412';
+let allData=[];
+let currentFilter='all';
+let charts={};
+
+const CS={
+  comm_directo: {label:'Directo/a',   color:'#378ADD'},
+  comm_reflexivo:{label:'Reflexivo/a', color:'#EF9F27'},
+  comm_expresivo:{label:'Expresivo/a', color:'#D85A30'},
+  comm_analitico:{label:'Analítico/a', color:'#7F77DD'}
+};
+const SD={
+  analitico:'Pensamiento analítico', estrategico:'Pensamiento estratégico',
+  relacionador:'Constructor/a de relaciones', activador:'Activador/a',
+  comunicacion:'Comunicador/a natural', disciplina:'Disciplina y excelencia',
+  empatia:'Inteligencia emocional', desarrollo:'Desarrollador/a de personas',
+  futurista:'Visionario/a', mando:'Liderazgo de mando',
+  positividad:'Energía positiva', aprendizaje:'Aprendizaje continuo',
+  enfoque:'Enfoque y determinación', adaptable:'Adaptabilidad',
+  responsabilidad:'Responsabilidad', contexto:'Pensamiento contextual'
+};
+const EXP_OPTS=[
+  'Entender cómo me perciben los demás',
+  'Herramientas para comunicarme con más impacto',
+  'Claridad sobre mi diferencial y propuesta de valor',
+  'Inspiración para construir mi marca personal'
+];
+
+function login(){
+  if(document.getElementById('pass-in').value.trim()===MOD_PASS){
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('dash').style.display='block';
+    loadData();
+    setInterval(loadData,10000);
+  } else {
+    document.getElementById('pass-err').style.display='block';
+    document.getElementById('pass-in').value='';
+  }
+}
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&document.getElementById('login-screen').style.display!=='none')login()});
+
+async function loadData(){
+  try{
+    const r=await fetch(GAS_URL+'?t='+Date.now());
+    const j=await r.json();
+    allData=(j.data||[]).filter(d=>d.Timestamp);
+    document.getElementById('last-update').textContent='Actualizado '+new Date().toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    renderAll();
+  }catch(e){
+    document.getElementById('last-update').textContent='Error al cargar — reintentando...';
+  }
+}
+
+function getFiltered(){
+  if(currentFilter==='all')return allData;
+  return allData.filter(d=>(d.Género||d.gender||'').toLowerCase()===currentFilter);
+}
+
+function setFilter(f){
+  currentFilter=f;
+  ['all','h','m'].forEach(id=>{
+    const el=document.getElementById('fe-'+id);
+    if(el)el.classList.toggle('on',(id==='all'&&f==='all')||(id==='h'&&f==='hombre')||(id==='m'&&f==='mujer'));
+  });
+  renderEstilos();
+}
+
+function showTab(tab){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.getElementById('p-'+tab).classList.add('active');
+  const tabs=['expectativas','estilos','fortalezas','genero','recientes'];
+  document.querySelectorAll('.tab')[tabs.indexOf(tab)]?.classList.add('on');
+}
+
+function renderAll(){
+  const data=allData;
+  const total=data.length;
+  const hCount=data.filter(d=>(d.Género||d.gender||'').toLowerCase()==='hombre').length;
+  const mCount=data.filter(d=>(d.Género||d.gender||'').toLowerCase()==='mujer').length;
+
+  document.getElementById('st-total').textContent=total;
+  document.getElementById('st-h').textContent=hCount;
+  document.getElementById('st-m').textContent=mCount;
+
+  if(total>0){
+    const csCount={comm_directo:0,comm_reflexivo:0,comm_expresivo:0,comm_analitico:0};
+    data.forEach(d=>{const c=(d.Estilo||d.comm||'').trim();if(csCount[c]!==undefined)csCount[c]++});
+    const dom=Object.entries(csCount).sort((a,b)=>b[1]-a[1])[0];
+    document.getElementById('st-dom').textContent=CS[dom[0]]?.label||dom[0];
+  }
+
+  renderExpectativas();
+  renderEstilos();
+  renderFortalezas();
+  renderGenero();
+  renderRecientes();
+}
+
+function hBar(label,v,total,color){
+  const pct=total>0?Math.round((v/total)*100):0;
+  return `<div class="hbar-wrap">
+    <div class="hbar-top">
+      <span class="hbar-label">${label}</span>
+      <span><span class="hbar-pct">${pct}%</span><span class="hbar-count">${v} pers.</span></span>
+    </div>
+    <div class="hbar-bg"><div class="hbar-fill" style="width:${pct}%;background:${color}"></div></div>
+  </div>`;
+}
+
+function renderExpectativas(){
+  const data=allData;
+  const counts=[0,0,0,0];
+  data.forEach(d=>{
+    const e=parseInt(d.Expectativa??d.expectativa??-1);
+    if(e>=0&&e<=3)counts[e]++;
+  });
+  const total=counts.reduce((a,b)=>a+b,0);
+  const colors=['#534AB7','#185FA5','#0F6E56','#993C1D'];
+  let html='';
+  const sorted=[...counts.map((v,i)=>({v,i}))].sort((a,b)=>b.v-a.v);
+  sorted.forEach(({v,i})=>{ html+=hBar(EXP_OPTS[i],v,total,colors[i]); });
+  document.getElementById('exp-bars').innerHTML=html||'<p style="color:#9FE1CB;font-size:13px">Sin datos aún...</p>';
+
+  if(total>0){
+    const top=sorted[0];
+    const pct=Math.round((top.v/total)*100);
+    const msgs=[
+      `El ${pct}% quiere entender cómo lo perciben. Abran con el experimento de FaceReader — es exactamente lo que buscan.`,
+      `El ${pct}% quiere herramientas concretas. Prometan desde el inicio: "Se van con 5 cosas que pueden aplicar mañana".`,
+      `El ${pct}% busca claridad sobre su diferencial. El ejercicio de la frase de marca del Bloque 4 es su momento clave.`,
+      `El ${pct}% quiere inspiración para relanzar su marca. Compartan sus historias personales — eso es lo que necesitan escuchar.`
+    ];
+    document.getElementById('exp-insight').textContent=msgs[top.i];
+  }
+}
+
+function renderEstilos(){
+  const data=getFiltered();
+  const total=data.length;
+  const csCount={comm_directo:0,comm_reflexivo:0,comm_expresivo:0,comm_analitico:0};
+  data.forEach(d=>{const c=(d.Estilo||d.comm||'').trim();if(csCount[c]!==undefined)csCount[c]++});
+
+  /* Donut chart */
+  const ctx=document.getElementById('chart-estilos');
+  if(charts.estilos)charts.estilos.destroy();
+  charts.estilos=new Chart(ctx,{
+    type:'doughnut',
+    data:{
+      labels:Object.values(CS).map(c=>c.label),
+      datasets:[{data:Object.keys(CS).map(k=>csCount[k]),
+        backgroundColor:Object.values(CS).map(c=>c.color),
+        borderColor:'#132536',borderWidth:3}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom',labels:{color:'#9FE1CB',font:{size:12},padding:12}},
+        tooltip:{callbacks:{label:ctx=>{
+          const pct=total>0?Math.round((ctx.parsed/total)*100):0;
+          return ` ${ctx.parsed} personas · ${pct}%`;
+        }}}}}
+  });
+
+  /* Barras horizontales */
+  let html='';
+  Object.entries(csCount).sort((a,b)=>b[1]-a[1]).forEach(([k,v])=>{
+    html+=hBar(CS[k].label,v,total,CS[k].color);
+  });
+  document.getElementById('estilos-bars').innerHTML=html||'<p style="color:#9FE1CB;font-size:13px">Sin datos aún...</p>';
+
+  /* Insight */
+  if(total>0){
+    const dom=Object.entries(csCount).sort((a,b)=>b[1]-a[1])[0];
+    const pct=Math.round((dom[1]/total)*100);
+    const msgs={
+      comm_directo:`Sala orientada a resultados (${pct}% directo/a). Dar conclusiones primero, luego contexto.`,
+      comm_reflexivo:`Sala reflexiva (${pct}% reflexivo/a). Dar tiempo para procesar, no presionar decisiones inmediatas.`,
+      comm_expresivo:`Sala emocional (${pct}% expresivo/a). Conectar primero con las personas, luego con las ideas.`,
+      comm_analitico:`Sala técnica (${pct}% analítico/a). Apoyar afirmaciones con datos — la credibilidad viene del rigor.`
+    };
+    const suffix=currentFilter!=='all'?` · filtrado: ${currentFilter==='hombre'?'hombres':'mujeres'}`:'';
+    document.getElementById('estilos-insight').textContent=(msgs[dom[0]]||'')+suffix;
+  } else {
+    document.getElementById('estilos-insight').textContent='Sin datos para el filtro seleccionado.';
+  }
+}
+
+function renderFortalezas(){
+  const data=allData;
+  const strCount={};
+  data.forEach(d=>{
+    const raw=d.Fortalezas||d.strengths||'';
+    const list=typeof raw==='string'?raw.split(',').map(s=>s.trim()).filter(Boolean):(raw||[]);
+    list.forEach(s=>{strCount[s]=(strCount[s]||0)+1});
+  });
+  const sorted=Object.entries(strCount).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const total=data.length||1;
+
+  /* Bar chart */
+  const ctx=document.getElementById('chart-fort');
+  if(charts.fort)charts.fort.destroy();
+  charts.fort=new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels:sorted.map(([k])=>SD[k]||k),
+      datasets:[{data:sorted.map(([,v])=>v),
+        backgroundColor:'#0F6E56',borderRadius:6,borderSkipped:false}]
+    },
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},
+        tooltip:{callbacks:{label:ctx=>{
+          const pct=Math.round((ctx.parsed.x/total)*100);
+          return ` ${ctx.parsed.x} personas · ${pct}%`;
+        }}}},
+      scales:{
+        x:{grid:{color:'#1e3a50'},ticks:{color:'#9FE1CB',font:{size:11}}},
+        y:{grid:{display:false},ticks:{color:'#E1F5EE',font:{size:11}}}
+      }}
+  });
+
+  /* Barras full */
+  const maxV=sorted[0]?sorted[0][1]:1;
+  let html='';
+  sorted.forEach(([k,v])=>{
+    const pct=Math.round((v/total)*100);
+    html+=`<div class="hbar-wrap">
+      <div class="hbar-top">
+        <span class="hbar-label">${SD[k]||k}</span>
+        <span><span class="hbar-pct">${pct}%</span><span class="hbar-count">${v} pers.</span></span>
+      </div>
+      <div class="hbar-bg"><div class="hbar-fill" style="width:${Math.round((v/maxV)*100)}%;background:var(--verde-med)"></div></div>
+    </div>`;
+  });
+  document.getElementById('fort-bars').innerHTML=html||'<p style="color:#9FE1CB;font-size:13px">Sin datos aún...</p>';
+}
+
+function renderGenero(){
+  const data=allData;
+  const hCount=data.filter(d=>(d.Género||d.gender||'').toLowerCase()==='hombre').length;
+  const mCount=data.filter(d=>(d.Género||d.gender||'').toLowerCase()==='mujer').length;
+  const oCount=data.length-hCount-mCount;
+
+  /* Pie género */
+  const ctx1=document.getElementById('chart-genero');
+  if(charts.genero)charts.genero.destroy();
+  charts.genero=new Chart(ctx1,{
+    type:'pie',
+    data:{
+      labels:['Hombres','Mujeres','No especifica'],
+      datasets:[{data:[hCount,mCount,oCount],
+        backgroundColor:['#378ADD','#ED93B1','#5F5E5A'],
+        borderColor:'#132536',borderWidth:3}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom',labels:{color:'#9FE1CB',font:{size:12},padding:12}},
+        tooltip:{callbacks:{label:ctx=>{
+          const total=hCount+mCount+oCount||1;
+          return ` ${ctx.parsed} · ${Math.round((ctx.parsed/total)*100)}%`;
+        }}}}}
+  });
+
+  /* Estilos por género */
+  const csKeys=['comm_directo','comm_reflexivo','comm_expresivo','comm_analitico'];
+  const hData=data.filter(d=>(d.Género||d.gender||'').toLowerCase()==='hombre');
+  const mData=data.filter(d=>(d.Género||d.gender||'').toLowerCase()==='mujer');
+  const hCounts=csKeys.map(k=>hData.filter(d=>(d.Estilo||d.comm||'').trim()===k).length);
+  const mCounts=csKeys.map(k=>mData.filter(d=>(d.Estilo||d.comm||'').trim()===k).length);
+
+  const ctx2=document.getElementById('chart-genero-estilos');
+  if(charts.generoEst)charts.generoEst.destroy();
+  charts.generoEst=new Chart(ctx2,{
+    type:'bar',
+    data:{
+      labels:csKeys.map(k=>CS[k].label),
+      datasets:[
+        {label:'Hombres',data:hCounts,backgroundColor:'#378ADD',borderRadius:4},
+        {label:'Mujeres',data:mCounts,backgroundColor:'#ED93B1',borderRadius:4}
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom',labels:{color:'#9FE1CB',font:{size:12},padding:8}}},
+      scales:{
+        x:{grid:{display:false},ticks:{color:'#9FE1CB',font:{size:11}}},
+        y:{grid:{color:'#1e3a50'},ticks:{color:'#9FE1CB',font:{size:11}},
+          title:{display:true,text:'Personas',color:'#9FE1CB',font:{size:11}}}
+      }}
+  });
+}
+
+function renderRecientes(){
+  const data=[...allData].reverse().slice(0,20);
+  if(data.length===0){
+    document.getElementById('recientes-list').innerHTML='<p style="color:#9FE1CB;font-size:13px;padding:10px 0">Sin respuestas aún...</p>';
+    return;
+  }
+  let html='';
+  data.forEach(d=>{
+    const g=(d.Género||d.gender||'o').toLowerCase();
+    const chipCls=g==='hombre'?'chip-h':g==='mujer'?'chip-m':'chip-o';
+    const chipTxt=g==='hombre'?'H':g==='mujer'?'M':'—';
+    const name=d.Nombre||d.name||'Anónimo/a';
+    const style=CS[(d.Estilo||d.comm||'').trim()]?.label||d.Estilo||'—';
+    const ts=d.Timestamp?new Date(d.Timestamp).toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'}):'';
+    html+=`<div class="entry-row">
+      <span class="entry-chip ${chipCls}">${chipTxt}</span>
+      <span class="entry-name">${name}</span>
+      <span class="entry-style">${style}</span>
+      <span class="entry-time">${ts}</span>
+    </div>`;
+  });
+  document.getElementById('recientes-list').innerHTML=html;
+}
+
+function clearAll(){
+  if(!confirm('¿Eliminar TODOS los datos de la sesión? Esta acción no se puede deshacer.'))return;
+  alert('Para limpiar los datos, vaya a Google Sheets y borre las filas manualmente desde la fila 2 en adelante.');
+}
+</script>
+</body>
+</html>
